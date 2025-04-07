@@ -1,20 +1,21 @@
 // main.js - Core application logic
 
 // Import modules
-import { addDefaultBasemap, basemaps } from './basemaps.js';
-import { setupLayerControls } from './layer_controls.js';
+import { addDefaultBasemap, basemaps } from './basemaps.js'; 
+import { setupLayerControls } from './layer_controls.js'; 
 import { initializeLegend, updateLegend, hideLegend } from './legend.js';
-import { colorScales } from './color_scales.js';
+import { colorScales } from './color_scales.js'; 
 import { loadVectorLayer } from './vector_layers.js';
 import { initializeSplitMap } from './split-map.js';
-import { CombinedBasemapControl } from './combined-basemap-control.js';
+import { createAdminLabelLayers, generateAdminLabels } from './admin_labels.js';
 
 // Global layer storage
 export const layers = {
     tiff: {},     // Store TIFF layers
     vector: {},   // Store vector layers
-    point: null,  // Store point layer
-    countryOutline: null // Store country outline
+    point: {},  // Store point layer
+    countryOutline: null, // Store country outline
+    labels: null  // Store label layers
 };
 
 // Initialize application
@@ -32,17 +33,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Load Mali outline by default
     await loadCountryOutline(mainMap);
     
-    // Create country outline toggle button
-    createOutlineToggle(mainMap);
+    // Initialize admin label layers
+    layers.labels = createAdminLabelLayers(mainMap, layers.vector, layers.countryOutline, compareMap);
     
     // Setup layer controls
     setupLayerControls(mainMap, layers, colorScales, updateLegend, hideLegend);
     
     // Initialize opacity values display
     setupOpacityDisplays();
-    
-    // Add combined basemap control
-    mainMap.addControl(new CombinedBasemapControl(mainMap, compareMap));
 });
 
 /**
@@ -50,11 +48,28 @@ document.addEventListener('DOMContentLoaded', async function() {
  */
 function setupMainMap(mapId) {
     const map = L.map(mapId, {
-        zoomControl: true,
+        zoomControl: true,  // We'll remove this in createAdminLabelLayers
         attributionControl: true
     }).setView([17.5707, -3.9962], 6);
+    map.attributionControl.setPrefix(' The boundaries and names shown and the designations used on this map do not imply official endorsement or acceptance by the United Nations.')
+    map.attributionControl.setPosition('bottomleft')
+    
+    console.log('Main Map CRS Information:', {
+        mapId: mapId,
+        crs: map.options.crs,
+        crsCode: map.options.crs.code,
+        projection: map.options.crs.projection ? map.options.crs.projection.toString() : 'No projection info'
+    });
     
     addDefaultBasemap(map);
+    // Add scale bar
+    L.control.scale({
+        position: 'bottomleft',
+        metric: true,
+        imperial: false,
+        maxWidth: 200
+    }).addTo(map);
+
     return map;
 }
 
@@ -68,6 +83,7 @@ function setupCompareMap(mapId) {
     }).setView([17.5707, -3.9962], 6);
     
     basemaps.esriWorldImagery.addTo(map);
+    
     return map;
 }
 
@@ -93,48 +109,6 @@ async function loadCountryOutline(map) {
         layers.countryOutline = outlineLayer;
     } catch (error) {
         console.error("Failed to load country outline:", error);
-    }
-}
-
-/**
- * Create toggle button for country outline
- */
-function createOutlineToggle(map) {
-    const OutlineControl = L.Control.extend({
-        options: { position: 'topleft' },
-        
-        onAdd: function() {
-            const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control outline-toggle-control');
-            const button = L.DomUtil.create('a', 'outline-toggle-button', container);
-            button.href = '#';
-            button.innerHTML = '🗺️ Toggle Outline';
-            button.classList.add('active');
-            
-            L.DomEvent.on(button, 'click', function(e) {
-                L.DomEvent.preventDefault(e);
-                toggleCountryOutline(button, map);
-            });
-            
-            L.DomEvent.disableClickPropagation(container);
-            return container;
-        }
-    });
-    
-    map.addControl(new OutlineControl());
-}
-
-/**
- * Toggle country outline visibility
- */
-function toggleCountryOutline(button, map) {
-    if (!layers.countryOutline) return;
-    
-    if (map.hasLayer(layers.countryOutline)) {
-        map.removeLayer(layers.countryOutline);
-        button.classList.remove('active');
-    } else {
-        map.addLayer(layers.countryOutline);
-        button.classList.add('active');
     }
 }
 

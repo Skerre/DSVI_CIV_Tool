@@ -8,6 +8,7 @@ import { loadVectorLayer,
     populateAttributeSelector } from './vector_layers.js';
 import { loadTiff } from './zoom-adaptive-tiff-loader.js';
 import { setupColorRampSelector, getColorRamp } from './color_ramp_selector.js';
+import { generateAdminLabels } from './admin_labels.js';
 
 // Layer configuration - maps checkbox IDs to loading functions and parameters
 const layerConfig = {
@@ -42,9 +43,24 @@ const layerConfig = {
         colorRampSelector: 'vectorColorRamp2',
         colorRampPreview: 'vectorColorPreview2'
     },
+    streetNetworkLayer: {
+        type: 'vector',
+        url: 'data/street_subset.geojson', // Update with your actual file path
+        style: {
+            color: "#3388ff",
+            weight: 0.5,
+            opacity: 1,
+            fillOpacity: 0
+        },
+        opacityControl: 'streetNetworkOpacity',
+        opacityDisplay: 'streetNetworkOpacityValue',
+        attributeSelector: 'streetNetworkAttribute',
+        colorRampSelector: 'streetNetworkColorRamp',
+        colorRampPreview: 'streetNetworkColorPreview'
+    },
     pointLayer: {
         type: 'point',
-        url: 'data/sample-points_2.geojson',
+        url: 'data/DHS_stats.geojson',
         opacityControl: 'pointOpacity',
         opacityDisplay: 'pointOpacityValue',
         selectorId: 'pointValueSelector',
@@ -53,10 +69,21 @@ const layerConfig = {
         colorRampPreview: 'pointColorPreview',
         attributeSelector: 'pointValueSelector'  // Reuse existing selector
     },
+    pointLayer2: {
+        type: 'point',
+        url: 'data/cities.geojson',
+        opacityControl: 'pointOpacity2',
+        opacityDisplay: 'pointOpacityValue2',
+        selectorId: 'pointValueSelector2',
+        // Add these new properties:
+        colorRampSelector: 'pointColorRamp2',
+        colorRampPreview: 'pointColorPreview2',
+        attributeSelector: 'pointValueSelector2'  // Reuse existing selector
+    },
     // Raster layers
     tiffLayer1: {
         type: 'raster',
-        url: 'data/celltower_density_epsg4326_lowres.tif',
+        url: 'data/celltower.tif',
         opacityControl: 'tiffOpacity1',
         opacityDisplay: 'tiffOpacityValue1',
         colorScale: 'cellTowerDensity',
@@ -66,7 +93,7 @@ const layerConfig = {
     },
     tiffLayer2: {
         type: 'raster',
-        url: 'data/pop_epsg4326_lowres.tif',
+        url: 'data/pop.tif',
         opacityControl: 'tiffOpacity2',
         opacityDisplay: 'tiffOpacityValue2',
         colorScale: 'populationDensity',
@@ -76,7 +103,7 @@ const layerConfig = {
     },
     tiffLayer3: {
         type: 'raster',
-        url: 'data/SV_May23_HR_IR_MIS_2021_agg_epsg4326_lowres.tif',
+        url: 'data/SV_May23_HR_IR_MIS_2021_agg.tif',
         opacityControl: 'tiffOpacity3',
         opacityDisplay: 'tiffOpacityValue3',
         colorScale: 'socialVulnerability',
@@ -86,7 +113,7 @@ const layerConfig = {
     },
     tiffLayer4: {
         type: 'raster',
-        url: 'data/rwi_density_epsg4326_lowres.tif',
+        url: 'data/rwi.tif',
         opacityControl: 'tiffOpacity4',
         opacityDisplay: 'tiffOpacityValue4',
         colorScale: 'relativeWealth',
@@ -96,12 +123,12 @@ const layerConfig = {
     },
     tiffLayer5: {
         type: 'raster',
-        url: 'data/conflict4.tif',
+        url: 'data/.tif',
         opacityControl: 'tiffOpacity5',
         opacityDisplay: 'tiffOpacityValue5',
-        colorScale: 'relativeWealth',
-        legendTitle: 'Conflict Event Heatmap',
-        legendDescription: 'Gradient representing number of conflict events in the past 20 years.',
+        colorScale: 'nightlightintensity',
+        legendTitle: 'Nightlights',
+        legendDescription: 'Gradient representing nightlight intensity.',
         legendLabels: ['Low', 'Medium-Low', 'Medium', 'High', 'Very High']
     },
     tiffLayer6: {
@@ -109,19 +136,29 @@ const layerConfig = {
         url: 'data/ndvi2.tif',
         opacityControl: 'tiffOpacity6',
         opacityDisplay: 'tiffOpacityValue6',
-        colorScale: 'relativeWealth',
-        legendTitle: 'Relative Wealth',
+        colorScale: 'ndvi',
+        legendTitle: 'Vegetation Health',
         legendDescription: 'Gradient representing Normalized Difference Vegetation Index.',
         legendLabels: ['Low', 'Medium-Low', 'Medium', 'High', 'Very High']
     },
     tiffLayer7: {
         type: 'raster',
-        url: 'data/ntl2.tif',
+        url: 'data/conflict.tif',
         opacityControl: 'tiffOpacity7',
         opacityDisplay: 'tiffOpacityValue7',
-        colorScale: 'relativeWealth',
-        legendTitle: 'Relative Wealth',
-        legendDescription: 'Gradient representing nightlight intensity.',
+        colorScale: 'conflict',
+        legendTitle: 'Conflicts (ACLED)',
+        legendDescription: 'Gradient representing number of conflict events in the past 15 years.',
+        legendLabels: ['Low', 'Medium-Low', 'Medium', 'High', 'Very High']
+    },
+    tiffLayer8: {
+        type: 'raster',
+        url: 'data/temp_compr.tif',
+        opacityControl: 'tiffOpacity8',
+        opacityDisplay: 'tiffOpacityValue8',
+        colorScale: 'temp',
+        legendTitle: 'Conflicts (ACLED)',
+        legendDescription: 'Gradient representing number of conflict events in the past 15 years.',
         legendLabels: ['Low', 'Medium-Low', 'Medium', 'High', 'Very High']
     }
 };
@@ -167,6 +204,7 @@ function setupPointControls(layerId, map, layers, config, updateLegend) {
     setupColorRampSelector(config.colorRampSelector, config.colorRampPreview, () => {
         updatePointLayerFromControls(layerId, layers, updateLegend);
     });
+    
     const attributeSelector = document.getElementById(config.attributeSelector);
     if (attributeSelector) {
         attributeSelector.addEventListener('change', () => {
@@ -179,17 +217,23 @@ function setupPointControls(layerId, map, layers, config, updateLegend) {
  * Setup point layer property selector
  */
 function setupPointLayerSelector(layers) {
-    const pointSelector = document.getElementById('pointValueSelector');
-    if (!pointSelector) return;
-    
-    pointSelector.addEventListener('change', function() {
-        if (!layers.point) return;
-        
-        layers.point.eachLayer(layer => {
-            if (layer.feature) {
-                updateTooltip(layer.feature, layer, 'pointValueSelector');
-            }
-        });
+    // Process all point layer selectors
+    Object.keys(layerConfig).forEach(layerId => {
+        const config = layerConfig[layerId];
+        if (config.type === 'point' && config.selectorId) {
+            const selector = document.getElementById(config.selectorId);
+            if (!selector) return;
+            
+            selector.addEventListener('change', function() {
+                if (!layers.point[layerId]) return;
+                
+                layers.point[layerId].eachLayer(layer => {
+                    if (layer.feature) {
+                        updateTooltip(layer.feature, layer, config.selectorId);
+                    }
+                });
+            });
+        }
     });
 }
 
@@ -261,6 +305,15 @@ function setupLayerToggle(layerId, map, layers, colorScales, updateLegend, hideL
                 // If vector layer, populate attribute selector
                 if (config.type === 'vector' && config.attributeSelector && layers.vector[layerId]) {
                     populateAttributeSelector(layers.vector[layerId], config.attributeSelector);
+                    
+                    // Add this block to generate labels for admin boundaries
+                    if (layerId === 'geojsonLayer' && layers.labels) {
+                        // This is the admin level 1 layer
+                        generateAdminLabels(layers.vector[layerId], 'adm1', layers.labels.adm1);
+                    } else if (layerId === 'geojsonLayer2' && layers.labels) {
+                        // This is the admin level 2 layer
+                        generateAdminLabels(layers.vector[layerId], 'adm2', layers.labels.adm2);
+                    }
                 }
             } catch (error) {
                 console.error(`Error loading layer ${layerId}:`, error);
@@ -277,7 +330,7 @@ function setupLayerToggle(layerId, map, layers, colorScales, updateLegend, hideL
  */
 function updatePointLayerFromControls(layerId, layers, updateLegend) {
     const config = layerConfig[layerId];
-    if (!config || !layers.point) return;
+    if (!config || !layers.point[layerId]) return;
     
     // Get selected attribute
     const attributeSelector = document.getElementById(config.attributeSelector);
@@ -296,7 +349,7 @@ function updatePointLayerFromControls(layerId, layers, updateLegend) {
     
     // Update the point layer style
     updatePointLayerStyle(
-        layers.point, 
+        layers.point[layerId], 
         attributeSelector.value, 
         colorRamp, 
         opacity, 
@@ -318,12 +371,16 @@ async function loadLayer(layerId, map, layers, colorScales, updateLegend) {
             layers.vector[layerId].addTo(map);
             break;
             
-        case 'point':
-            if (!layers.point) {
-                layers.point = await loadPointLayer(config.url, { selectorId: config.selectorId });
-            }
-            layers.point.addTo(map);
-            break;
+            case 'point':
+                if (!layers.point[layerId]) {
+                    layers.point[layerId] = await loadPointLayer(config.url, { 
+                        selectorId: config.selectorId,
+                        attributeSelector: config.attributeSelector,
+                        colorRampSelector: config.colorRampSelector
+                    });
+                }
+                layers.point[layerId].addTo(map);
+                break;
             
         case 'raster':
             // Verify color scale exists
@@ -334,6 +391,10 @@ async function loadLayer(layerId, map, layers, colorScales, updateLegend) {
             
             if (!layers.tiff[layerId]) {
                 await loadTiff(config.url, layerId, layers.tiff, map, selectedColorScale);
+                console.log(`Raster Layer ${layerId} loaded:`, {
+                    url: config.url,
+                    bounds: layers.tiff[layerId] ? layers.tiff[layerId].getBounds() : 'N/A'
+                });
             } else {
                 layers.tiff[layerId].addTo(map);
             }
@@ -362,11 +423,11 @@ function removeLayer(layerId, map, layers, hideLegend) {
             }
             break;
             
-        case 'point':
-            if (layers.point) {
-                map.removeLayer(layers.point);
-            }
-            break;
+            case 'point':
+                if (layers.point[layerId]) {
+                    map.removeLayer(layers.point[layerId]);
+                }
+                break;
             
         case 'raster':
             if (layers.tiff[layerId]) {
@@ -436,14 +497,20 @@ function updateLayerOpacity(layerType, layerId, layers, opacity, updateLegend) {
             }
             break;
             
-        case 'point':
-            if (layers.point) {
-                layers.point.setStyle({ 
-                    fillOpacity: opacity, 
-                    opacity: opacity 
-                });
-            }
-            break;
+            case 'point':
+                if (layers.point[layerId]) {
+                    layers.point[layerId].setStyle({ 
+                        fillOpacity: opacity, 
+                        opacity: opacity 
+                    });
+                    
+                    // Update color-based styling if configured
+                    const config = layerConfig[layerId];
+                    if (config.attributeSelector && config.colorRampSelector) {
+                        updatePointLayerFromControls(layerId, layers, updateLegend);
+                    }
+                }
+                break;
     }
 }
 
