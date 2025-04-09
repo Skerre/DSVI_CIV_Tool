@@ -15,7 +15,7 @@ const layerConfig = {
     // Vector layers
     geojsonLayer: {
         type: 'vector',
-        url: 'data/adm1_summary_stats_1.geojson',
+        url: 'data/adm1_rf_zonal.geojson',
         style: {
             color: "#3388ff",
             weight: 2,
@@ -30,7 +30,7 @@ const layerConfig = {
     },
     geojsonLayer2: {
         type: 'vector',
-        url: 'data/adm2_summary_stats_3.geojson',
+        url: 'data/adm2.geojson',
         style: {
             color: "#FF5733",
             weight: 1.5,
@@ -103,7 +103,7 @@ const layerConfig = {
     },
     tiffLayer3: {
         type: 'raster',
-        url: 'data/SV_May23_HR_IR_MIS_2021_agg.tif',
+        url: 'data/test_Sv.tif',
         opacityControl: 'tiffOpacity3',
         opacityDisplay: 'tiffOpacityValue3',
         colorScale: 'socialVulnerability',
@@ -123,7 +123,7 @@ const layerConfig = {
     },
     tiffLayer5: {
         type: 'raster',
-        url: 'data/.tif',
+        url: 'data/ntl.tif',
         opacityControl: 'tiffOpacity5',
         opacityDisplay: 'tiffOpacityValue5',
         colorScale: 'nightlightintensity',
@@ -153,7 +153,7 @@ const layerConfig = {
     },
     tiffLayer8: {
         type: 'raster',
-        url: 'data/temp_compr.tif',
+        url: 'data/temp2.tif',
         opacityControl: 'tiffOpacity8',
         opacityDisplay: 'tiffOpacityValue8',
         colorScale: 'temp',
